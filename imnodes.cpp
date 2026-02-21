@@ -622,7 +622,7 @@ void BeginNodeSelection(ImNodesEditorContext& editor, const int node_idx)
     // each node in the selection to the origin of the dragged node.
     const ImVec2 ref_origin = editor.Nodes.Pool[node_idx].Origin;
     editor.PrimaryNodeOffset =
-        ref_origin + GImNodes->CanvasOriginScreenSpace + editor.Panning - GImNodes->MousePos;
+        ref_origin * editor.Zoom + GImNodes->CanvasOriginScreenSpace + editor.Panning - GImNodes->MousePos;
 
     editor.SelectedNodeOffsets.clear();
     for (int idx = 0; idx < editor.SelectedNodeIndices.Size; idx++)
@@ -833,9 +833,10 @@ void TranslateSelectedNodes(ImNodesEditorContext& editor)
                                          ? ImGui::GetIO().MouseDragMaxDistanceSqr[0] > 5.0
                                          : true;
 
+        const float  inv_zoom = 1.0f / editor.Zoom;
         const ImVec2 origin = SnapOriginToGrid(
-            GImNodes->MousePos - GImNodes->CanvasOriginScreenSpace - editor.Panning +
-            editor.PrimaryNodeOffset);
+            (GImNodes->MousePos - GImNodes->CanvasOriginScreenSpace - editor.Panning +
+            editor.PrimaryNodeOffset) * inv_zoom);
         for (int i = 0; i < editor.SelectedNodeIndices.size(); ++i)
         {
             const ImVec2 node_rel = editor.SelectedNodeOffsets[i];
@@ -843,7 +844,7 @@ void TranslateSelectedNodes(ImNodesEditorContext& editor)
             ImNodeData&  node = editor.Nodes.Pool[node_idx];
             if (node.Draggable && shouldTranslate)
             {
-                node.Origin = origin + node_rel + editor.AutoPanningDelta;
+                node.Origin = origin + node_rel + editor.AutoPanningDelta * inv_zoom;
             }
         }
     }
