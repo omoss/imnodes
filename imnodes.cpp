@@ -2284,6 +2284,18 @@ void BeginNodeEditor()
         }
         ImGui::SetWindowFontScale(editor.Zoom);
 
+        // Scale ImGui layout spacing so vertical gaps grow at the same rate as
+        // font/padding. Without this, ItemSpacing and FramePadding are fixed
+        // pixels that cause nodes to scale more in one axis than the other.
+        {
+            const ImVec2 sp = ImGui::GetStyle().ItemSpacing;
+            const ImVec2 fp = ImGui::GetStyle().FramePadding;
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+                ImVec2(sp.x * editor.Zoom, sp.y * editor.Zoom));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+                ImVec2(fp.x * editor.Zoom, fp.y * editor.Zoom));
+        }
+
         // NOTE: we have to fetch the canvas draw list *after* we call
         // BeginChild(), otherwise the ImGui UI elements are going to be
         // rendered into the parent window draw list.
@@ -2455,6 +2467,7 @@ void EndNodeEditor()
     GImNodes->CanvasDrawList->ChannelsMerge();
 
     // pop style
+    ImGui::PopStyleVar(2);                     // ItemSpacing + FramePadding
     ImGui::SetWindowFontScale(1.0f);          // restore font scale
     GImNodes->Style = GImNodes->StyleSnapshot; // restore size style vars
     ImGui::EndChild();      // end scrolling region
