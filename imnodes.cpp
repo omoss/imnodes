@@ -255,7 +255,7 @@ inline bool RectangleOverlapsLink(
 
 inline ImVec2 ScreenSpaceToGridSpace(const ImNodesEditorContext& editor, const ImVec2& v)
 {
-    return v - GImNodes->CanvasOriginScreenSpace - editor.Panning;
+    return (v - GImNodes->CanvasOriginScreenSpace - editor.Panning) * (1.0f / editor.Zoom);
 }
 
 inline ImRect ScreenSpaceToGridSpace(const ImNodesEditorContext& editor, const ImRect& r)
@@ -265,17 +265,17 @@ inline ImRect ScreenSpaceToGridSpace(const ImNodesEditorContext& editor, const I
 
 inline ImVec2 GridSpaceToScreenSpace(const ImNodesEditorContext& editor, const ImVec2& v)
 {
-    return v + GImNodes->CanvasOriginScreenSpace + editor.Panning;
+    return v * editor.Zoom + GImNodes->CanvasOriginScreenSpace + editor.Panning;
 }
 
 inline ImVec2 GridSpaceToEditorSpace(const ImNodesEditorContext& editor, const ImVec2& v)
 {
-    return v + editor.Panning;
+    return v * editor.Zoom + editor.Panning;
 }
 
 inline ImVec2 EditorSpaceToGridSpace(const ImNodesEditorContext& editor, const ImVec2& v)
 {
-    return v - editor.Panning;
+    return (v - editor.Panning) * (1.0f / editor.Zoom);
 }
 
 inline ImVec2 EditorSpaceToScreenSpace(const ImVec2& v)
@@ -1329,12 +1329,12 @@ inline ImRect GetNodeTitleRect(const ImNodeData& node)
 void DrawGrid(ImNodesEditorContext& editor, const ImVec2& canvas_size)
 {
     const ImVec2 offset = editor.Panning;
+    const float  spacing = GImNodes->Style.GridSpacing * editor.Zoom; // scale with zoom
     ImU32        line_color = GImNodes->Style.Colors[ImNodesCol_GridLine];
     ImU32        line_color_prim = GImNodes->Style.Colors[ImNodesCol_GridLinePrimary];
     bool         draw_primary = GImNodes->Style.Flags & ImNodesStyleFlags_GridLinesPrimary;
 
-    for (float x = fmodf(offset.x, GImNodes->Style.GridSpacing); x < canvas_size.x;
-         x += GImNodes->Style.GridSpacing)
+    for (float x = fmodf(offset.x, spacing); x < canvas_size.x; x += spacing)
     {
         GImNodes->CanvasDrawList->AddLine(
             EditorSpaceToScreenSpace(ImVec2(x, 0.0f)),
@@ -1342,8 +1342,7 @@ void DrawGrid(ImNodesEditorContext& editor, const ImVec2& canvas_size)
             offset.x - x == 0.f && draw_primary ? line_color_prim : line_color);
     }
 
-    for (float y = fmodf(offset.y, GImNodes->Style.GridSpacing); y < canvas_size.y;
-         y += GImNodes->Style.GridSpacing)
+    for (float y = fmodf(offset.y, spacing); y < canvas_size.y; y += spacing)
     {
         GImNodes->CanvasDrawList->AddLine(
             EditorSpaceToScreenSpace(ImVec2(0.0f, y)),
@@ -1498,7 +1497,7 @@ void DrawPin(ImNodesEditorContext& editor, const int pin_idx)
 void DrawNode(ImNodesEditorContext& editor, const int node_idx)
 {
     const ImNodeData& node = editor.Nodes.Pool[node_idx];
-    ImGui::SetCursorPos(node.Origin + editor.Panning);
+    ImGui::SetCursorPos(node.Origin * editor.Zoom + editor.Panning);
 
     const bool node_hovered =
         GImNodes->HoveredNodeIdx == node_idx &&
@@ -2053,6 +2052,16 @@ void EditorContextResetPanning(const ImVec2& pos)
     editor.Panning = pos;
 }
 
+float EditorContextGetZoom()
+{
+    return EditorContextGet().Zoom;
+}
+
+void EditorContextSetZoom(float zoom)
+{
+    EditorContextGet().Zoom = ImClamp(zoom, 0.1f, 3.0f);
+}
+
 void EditorContextMoveToNode(const int node_id)
 {
     ImNodesEditorContext& editor = EditorContextGet();
@@ -2378,9 +2387,19 @@ void EndNodeEditor()
             BeginNodeSelection(editor, GImNodes->HoveredNodeIdx.Value());
         }
 
+        else if (GImNodes->AltMouseScrollDelta != 0.f)
+        {
+            // Zoom toward mouse cursor.
+            const float delta      = GImNodes->AltMouseScrollDelta > 0.f ? 1.1f : (1.0f / 1.1f);
+            const float new_zoom   = ImClamp(editor.Zoom * delta, 0.1f, 3.0f);
+            const ImVec2 mouse_c   = GImNodes->MousePos - GImNodes->CanvasOriginScreenSpace;
+            const float  ratio     = new_zoom / editor.Zoom;
+            editor.Panning         = mouse_c * (1.0f - ratio) + editor.Panning * ratio;
+            editor.Zoom            = new_zoom;
+        }
         else if (
             GImNodes->LeftMouseClicked || GImNodes->LeftMouseReleased ||
-            GImNodes->AltMouseClicked || GImNodes->AltMouseScrollDelta != 0.f)
+            GImNodes->AltMouseClicked)
         {
             BeginCanvasInteraction(editor);
         }
