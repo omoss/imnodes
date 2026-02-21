@@ -2266,6 +2266,10 @@ void BeginNodeEditor()
                 ImGuiWindowFlags_NoScrollWithMouse);
         GImNodes->CanvasOriginScreenSpace = ImGui::GetCursorScreenPos();
 
+        // Scale font so all node text (labels, pins) grows/shrinks with zoom.
+        // This also makes nodes expand horizontally, giving uniform visual scaling.
+        ImGui::SetWindowFontScale(editor.Zoom);
+
         // NOTE: we have to fetch the canvas draw list *after* we call
         // BeginChild(), otherwise the ImGui UI elements are going to be
         // rendered into the parent window draw list.
@@ -2437,6 +2441,7 @@ void EndNodeEditor()
     GImNodes->CanvasDrawList->ChannelsMerge();
 
     // pop style
+    ImGui::SetWindowFontScale(1.0f); // restore font scale before ending child
     ImGui::EndChild();      // end scrolling region
     ImGui::PopStyleColor(); // pop child window background color
     ImGui::PopStyleVar();   // pop window padding
