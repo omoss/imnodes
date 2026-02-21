@@ -314,6 +314,7 @@ struct ImNodesContext
     // Configuration state
     ImNodesIO                        Io;
     ImNodesStyle                     Style;
+    ImNodesStyle                     StyleSnapshot; // saved before zoom scaling, restored after
     ImVector<ImNodesColElement>      ColorModifierStack;
     ImVector<ImNodesStyleVarElement> StyleModifierStack;
     ImGuiTextBuffer                  TextBuffer;
