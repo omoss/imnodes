@@ -1305,14 +1305,21 @@ inline ImRect GetItemRect() { return ImRect(ImGui::GetItemRectMin(), ImGui::GetI
 
 inline ImVec2 GetNodeTitleBarOrigin(const ImNodeData& node)
 {
-    return node.Origin + node.LayoutStyle.Padding;
+    // LayoutStyle.Padding is screen-space (scaled by zoom). Divide by zoom to
+    // produce a grid-space offset — GridSpaceToEditorSpace will re-apply zoom.
+    const float inv_zoom = 1.0f / EditorContextGet().Zoom;
+    return node.Origin + node.LayoutStyle.Padding * inv_zoom;
 }
 
 inline ImVec2 GetNodeContentOrigin(const ImNodeData& node)
 {
+    // TitleBarContentRect is screen-space (measured after SetWindowFontScale).
+    // Divide everything by zoom so this returns grid-space for GridSpaceToEditorSpace.
+    const float inv_zoom = 1.0f / EditorContextGet().Zoom;
     const ImVec2 title_bar_height =
-        ImVec2(0.f, node.TitleBarContentRect.GetHeight() + 2.0f * node.LayoutStyle.Padding.y);
-    return node.Origin + title_bar_height + node.LayoutStyle.Padding;
+        ImVec2(0.f, node.TitleBarContentRect.GetHeight() * inv_zoom +
+                    2.0f * node.LayoutStyle.Padding.y * inv_zoom);
+    return node.Origin + title_bar_height + node.LayoutStyle.Padding * inv_zoom;
 }
 
 inline ImRect GetNodeTitleRect(const ImNodeData& node)
