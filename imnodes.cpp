@@ -2425,7 +2425,7 @@ void EndNodeEditor()
             BeginNodeSelection(editor, GImNodes->HoveredNodeIdx.Value());
         }
 
-        else if (GImNodes->AltMouseScrollDelta != 0.f)
+        else if (GImNodes->AltMouseScrollDelta != 0.f && MouseInCanvas())
         {
             // Zoom toward mouse cursor.
             const float delta      = GImNodes->AltMouseScrollDelta > 0.f ? 1.1f : (1.0f / 1.1f);
