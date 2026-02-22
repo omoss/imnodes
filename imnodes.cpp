@@ -566,8 +566,15 @@ ImVec2 GetScreenSpacePinCoordinates(const ImNodesEditorContext& editor, const Im
 
 bool MouseInCanvas()
 {
-    // This flag should be true either when hovering or clicking something in the canvas.
-    const bool is_window_hovered_or_focused = ImGui::IsWindowHovered() || ImGui::IsWindowFocused();
+    // AllowWhenBlockedByActiveItem: return true even when another ImGui window
+    // has an active item (e.g. a focused InputTextMultiline in the Properties
+    // panel). Without this flag, IsWindowHovered() returns false while a text
+    // field in another panel has focus, causing imnodes to skip ResolveHoveredNode
+    // and BeginNodeSelection — making node-switching require two clicks instead
+    // of one.
+    const bool is_window_hovered_or_focused =
+        ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) ||
+        ImGui::IsWindowFocused();
 
     return is_window_hovered_or_focused &&
            GImNodes->CanvasRectScreenSpace.Contains(ImGui::GetMousePos());
