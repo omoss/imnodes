@@ -1951,7 +1951,9 @@ static void MiniMapUpdate()
     {
         ImVec2 target = MiniMapSpaceToGridSpace(editor, ImGui::GetMousePos());
         ImVec2 center = GImNodes->CanvasRectScreenSpace.GetSize() * 0.5f;
-        editor.Panning = ImFloor(center - target);
+        // target is grid-space; multiply by zoom so panning lands on the correct
+        // screen position: panning = center - target * zoom.
+        editor.Panning = ImFloor(center - target * editor.Zoom);
     }
 
     // Reset callback info after use
@@ -2572,7 +2574,9 @@ void EndNode()
     node.Rect.Expand(node.LayoutStyle.Padding);
 
     editor.GridContentBounds.Add(node.Origin);
-    editor.GridContentBounds.Add(node.Origin + node.Rect.GetSize());
+    // node.Rect is screen-space (scaled by zoom); convert back to grid-space
+    // before extending GridContentBounds so the minimap scaling is zoom-independent.
+    editor.GridContentBounds.Add(node.Origin + node.Rect.GetSize() * (1.0f / editor.Zoom));
 
     if (node.Rect.Contains(GImNodes->MousePos))
     {
