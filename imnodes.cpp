@@ -742,7 +742,8 @@ void BeginCanvasInteraction(ImNodesEditorContext& editor)
     {
         editor.ClickInteraction.Type = ImNodesClickInteractionType_Panning;
     }
-    else if (GImNodes->LeftMouseClicked)
+    else if (GImNodes->LeftMouseClicked &&
+             !ImGui::IsKeyDown(ImGuiKey_Space)) // suppress box-select when Space held
     {
         editor.ClickInteraction.Type = ImNodesClickInteractionType_BoxSelection;
         editor.ClickInteraction.BoxSelector.Rect.Min =
