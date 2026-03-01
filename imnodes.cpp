@@ -766,8 +766,13 @@ void BoxSelectorUpdateSelection(ImNodesEditorContext& editor, ImRect box_rect)
     }
 
     // Update node selection
+    // When the multiple-select modifier is held, preserve existing selection
+    // and merge new matches (additive box-select).
 
-    editor.SelectedNodeIndices.clear();
+    if (!GImNodes->MultipleSelectModifier)
+    {
+        editor.SelectedNodeIndices.clear();
+    }
 
     // Test for overlap against node rectangles
 
@@ -778,14 +783,20 @@ void BoxSelectorUpdateSelection(ImNodesEditorContext& editor, ImRect box_rect)
             ImNodeData& node = editor.Nodes.Pool[node_idx];
             if (box_rect.Overlaps(node.Rect))
             {
-                editor.SelectedNodeIndices.push_back(node_idx);
+                if (!editor.SelectedNodeIndices.contains(node_idx))
+                {
+                    editor.SelectedNodeIndices.push_back(node_idx);
+                }
             }
         }
     }
 
     // Update link selection
 
-    editor.SelectedLinkIndices.clear();
+    if (!GImNodes->MultipleSelectModifier)
+    {
+        editor.SelectedLinkIndices.clear();
+    }
 
     // Test for overlap against links
 
@@ -808,7 +819,10 @@ void BoxSelectorUpdateSelection(ImNodesEditorContext& editor, ImRect box_rect)
             // Test
             if (RectangleOverlapsLink(box_rect, start, end, pin_start.Type))
             {
-                editor.SelectedLinkIndices.push_back(link_idx);
+                if (!editor.SelectedLinkIndices.contains(link_idx))
+                {
+                    editor.SelectedLinkIndices.push_back(link_idx);
+                }
             }
         }
     }
