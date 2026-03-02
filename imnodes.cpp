@@ -643,11 +643,21 @@ void BeginNodeSelection(ImNodesEditorContext& editor, const int node_idx)
 void BeginLinkSelection(ImNodesEditorContext& editor, const int link_idx)
 {
     editor.ClickInteraction.Type = ImNodesClickInteractionType_Link;
-    // When a link is selected, clear all other selections, and insert the link
-    // as the sole selection.
     editor.SelectedNodeIndices.clear();
-    editor.SelectedLinkIndices.clear();
-    editor.SelectedLinkIndices.push_back(link_idx);
+
+    if (GImNodes->MultipleSelectModifier)
+    {
+        // Shift+click: toggle the link in/out of selection.
+        if (editor.SelectedLinkIndices.contains(link_idx))
+            editor.SelectedLinkIndices.find_erase_unsorted(link_idx);
+        else
+            editor.SelectedLinkIndices.push_back(link_idx);
+    }
+    else
+    {
+        editor.SelectedLinkIndices.clear();
+        editor.SelectedLinkIndices.push_back(link_idx);
+    }
 }
 
 void BeginLinkDetach(ImNodesEditorContext& editor, const int link_idx, const int detach_pin_idx)
