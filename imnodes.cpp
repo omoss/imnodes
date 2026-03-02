@@ -642,22 +642,10 @@ void BeginNodeSelection(ImNodesEditorContext& editor, const int node_idx)
 
 void BeginLinkSelection(ImNodesEditorContext& editor, const int link_idx)
 {
-    editor.ClickInteraction.Type = ImNodesClickInteractionType_Link;
-    editor.SelectedNodeIndices.clear();
-
-    if (GImNodes->MultipleSelectModifier)
-    {
-        // Shift+click: toggle the link in/out of selection.
-        if (editor.SelectedLinkIndices.contains(link_idx))
-            editor.SelectedLinkIndices.find_erase_unsorted(link_idx);
-        else
-            editor.SelectedLinkIndices.push_back(link_idx);
-    }
-    else
-    {
-        editor.SelectedLinkIndices.clear();
-        editor.SelectedLinkIndices.push_back(link_idx);
-    }
+    // Link selection is disabled — clicking a wire does nothing.
+    // Connections are removed by dragging them off their pin instead.
+    (void)editor;
+    (void)link_idx;
 }
 
 void BeginLinkDetach(ImNodesEditorContext& editor, const int link_idx, const int detach_pin_idx)
@@ -801,41 +789,8 @@ void BoxSelectorUpdateSelection(ImNodesEditorContext& editor, ImRect box_rect)
         }
     }
 
-    // Update link selection
-
-    if (!GImNodes->MultipleSelectModifier)
-    {
-        editor.SelectedLinkIndices.clear();
-    }
-
-    // Test for overlap against links
-
-    for (int link_idx = 0; link_idx < editor.Links.Pool.size(); ++link_idx)
-    {
-        if (editor.Links.InUse[link_idx])
-        {
-            const ImLinkData& link = editor.Links.Pool[link_idx];
-
-            const ImPinData& pin_start = editor.Pins.Pool[link.StartPinIdx];
-            const ImPinData& pin_end = editor.Pins.Pool[link.EndPinIdx];
-            const ImRect&    node_start_rect = editor.Nodes.Pool[pin_start.ParentNodeIdx].Rect;
-            const ImRect&    node_end_rect = editor.Nodes.Pool[pin_end.ParentNodeIdx].Rect;
-
-            const ImVec2 start = GetScreenSpacePinCoordinates(
-                node_start_rect, pin_start.AttributeRect, pin_start.Type);
-            const ImVec2 end =
-                GetScreenSpacePinCoordinates(node_end_rect, pin_end.AttributeRect, pin_end.Type);
-
-            // Test
-            if (RectangleOverlapsLink(box_rect, start, end, pin_start.Type))
-            {
-                if (!editor.SelectedLinkIndices.contains(link_idx))
-                {
-                    editor.SelectedLinkIndices.push_back(link_idx);
-                }
-            }
-        }
-    }
+    // Link selection during box-select is disabled — wires are not selectable.
+    editor.SelectedLinkIndices.clear();
 }
 
 ImVec2 SnapOriginToGrid(ImVec2 origin)
@@ -1199,8 +1154,6 @@ ImOptionalIndex ResolveHoveredPin(
     float           smallest_distance = FLT_MAX;
     ImOptionalIndex pin_idx_with_smallest_distance;
 
-    const float hover_radius_sqr = GImNodes->Style.PinHoverRadius * GImNodes->Style.PinHoverRadius;
-
     for (int idx = 0; idx < pins.Pool.Size; ++idx)
     {
         if (!pins.InUse[idx])
@@ -1216,10 +1169,10 @@ ImOptionalIndex ResolveHoveredPin(
         const ImVec2& pin_pos = pins.Pool[idx].Pos;
         const float   distance_sqr = ImLengthSqr(pin_pos - GImNodes->MousePos);
 
-        // TODO: GImNodes->Style.PinHoverRadius needs to be copied into pin data and the pin-local
-        // value used here. This is no longer called in BeginAttribute/EndAttribute scope and the
-        // detected pin might have a different hover radius than what the user had when calling
-        // BeginAttribute/EndAttribute.
+        // Use per-pin hover radius (copied from style at BeginAttribute time)
+        // so that individual pins can opt out of hover detection.
+        const float pin_hover_r = pins.Pool[idx].HoverRadius;
+        const float hover_radius_sqr = pin_hover_r * pin_hover_r;
         if (distance_sqr < hover_radius_sqr && distance_sqr < smallest_distance)
         {
             smallest_distance = distance_sqr;
@@ -1696,6 +1649,7 @@ void BeginPinAttribute(
     pin.Type = type;
     pin.Shape = shape;
     pin.Flags = GImNodes->CurrentAttributeFlags;
+    pin.HoverRadius = GImNodes->Style.PinHoverRadius;
     pin.ColorStyle.Background = GImNodes->Style.Colors[ImNodesCol_Pin];
     pin.ColorStyle.Hovered = GImNodes->Style.Colors[ImNodesCol_PinHovered];
 }

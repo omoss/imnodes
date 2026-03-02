@@ -170,6 +170,7 @@ struct ImPinData
     ImNodesPinShape      Shape;
     ImVec2               Pos; // screen-space coordinates
     int                  Flags;
+    float                HoverRadius; // per-pin hover radius (copied from style at BeginAttribute)
 
     struct
     {
@@ -179,7 +180,7 @@ struct ImPinData
     ImPinData(const int pin_id)
         : Id(pin_id), ParentNodeIdx(), AttributeRect(), Type(ImNodesAttributeType_None),
           Shape(ImNodesPinShape_CircleFilled), Pos(), Flags(ImNodesAttributeFlags_None),
-          ColorStyle()
+          HoverRadius(10.0f), ColorStyle()
     {
     }
 };
